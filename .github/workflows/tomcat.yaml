@@ -28,7 +28,7 @@ jobs:
         TOMCAT_USERNAME: ${{ secrets.TOMCAT_USERNAME }}
         TOMCAT_PASSWORD: ${{ secrets.TOMCAT_PASSWORD }}
       run: |
-        WAR_FILE=target/train-ticket-reservation.war
-        echo "Looking for WAR file at $WAR_FILE"
-        ls -l target  # show files in the target folder
+        WAR_FILE=target/TrainBook-1.0.0-SNAPSHOT.war
+        echo "Deploying WAR file: $WAR_FILE"
+        ls -l target
         curl --fail --upload-file $WAR_FILE "$TOMCAT_URL/deploy?path=/train-ticket-reservation&update=true" --user $TOMCAT_USERNAME:$TOMCAT_PASSWORD
