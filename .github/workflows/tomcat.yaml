@@ -32,3 +32,4 @@ jobs:
         echo "Deploying WAR file: $WAR_FILE"
         ls -l target
         curl --fail --upload-file $WAR_FILE "$TOMCAT_URL/deploy?path=/train-ticket-reservation&update=true" --user $TOMCAT_USERNAME:$TOMCAT_PASSWORD
+        
