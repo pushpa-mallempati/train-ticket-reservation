@@ -22,14 +22,13 @@ jobs:
     - name: Build WAR with Maven
       run: mvn clean package
 
-    - name: Deploy to Tomcat
-      env:
-        TOMCAT_URL: ${{ secrets.TOMCAT_URL }}
-        TOMCAT_USERNAME: ${{ secrets.TOMCAT_USERNAME }}
-        TOMCAT_PASSWORD: ${{ secrets.TOMCAT_PASSWORD }}
+    - name: Deploy WAR to Tomcat
       run: |
-        WAR_FILE=target/TrainBook-1.0.0-SNAPSHOT.war
-        echo "Deploying WAR file: $WAR_FILE"
-        ls -l target
-        curl --fail --upload-file $WAR_FILE "$TOMCAT_URL/deploy?path=/train-ticket-reservation&update=true" --user $TOMCAT_USERNAME:$TOMCAT_PASSWORD
-        
+           WAR_FILE=target/TrainBook-1.0.0-SNAPSHOT.war
+           echo "Deploying WAR file: $WAR_FILE"
+           ls -l target
+           curl --fail --upload-file $WAR_FILE "$TOMCAT_URL/deploy?path=/train-ticket-reservation&update=true" --user $TOMCAT_USERNAME:$TOMCAT_PASSWORD
+           env:
+           TOMCAT_URL: ${{ secrets.TOMCAT_URL }}
+           TOMCAT_USERNAME: ${{ secrets.TOMCAT_USERNAME }}
+           TOMCAT_PASSWORD: ${{ secrets.TOMCAT_PASSWORD }}
