@@ -32,3 +32,9 @@ jobs:
         TOMCAT_URL: ${{ secrets.TOMCAT_URL }}
         TOMCAT_USERNAME: ${{ secrets.TOMCAT_USERNAME }}
         TOMCAT_PASSWORD: ${{ secrets.TOMCAT_PASSWORD }}
+    - name: sonarqube code quality
+      run: |
+          mvn clean verify sonar:sonar \
+            -Dsonar.projectKey=train-ticket-reservation \
+            -Dsonar.host.url="${{ secrets.SONAR_HOST_URL }}" \
+            -Dsonar.login="${{ secrets.SONAR_TOKEN }}"
