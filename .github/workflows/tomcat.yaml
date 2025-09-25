@@ -12,10 +12,10 @@ jobs:
       - name: 📥 Checkout code
         uses: actions/checkout@v3
 
-      - name: List root repo files (debugging)
+      - name: 📂 List root repo files (debugging)
         run: ls -la
 
-      - name: ☕ Set up Java
+      - name: ☕ Set up Java 17
         uses: actions/setup-java@v3
         with:
           distribution: 'temurin'
@@ -33,7 +33,7 @@ jobs:
           USER: ${{ secrets.TOMCAT_USERNAME }}
           PASS: ${{ secrets.TOMCAT_PASSWORD }}
         run: |
-          echo "Deploy URL: $URL/deploy?path=/train-ticket-reservation&update=true"
+          echo "Deploying to DEV at $URL"
           curl -v -u "$USER:$PASS" -T target/TrainBook-1.0.0-SNAPSHOT.war "$URL/deploy?path=/train-ticket-reservation&update=true"
 
       - name: 🚀 Deploy to TEST
@@ -42,7 +42,7 @@ jobs:
           USER: ${{ secrets.TOMCAT_USERNAME }}
           PASS: ${{ secrets.TOMCAT_PASSWORD }}
         run: |
-          echo "Deploy URL: $URL/deploy?path=/train-ticket-reservation&update=true"
+          echo "Deploying to TEST at $URL"
           curl -v -u "$USER:$PASS" -T target/TrainBook-1.0.0-SNAPSHOT.war "$URL/deploy?path=/train-ticket-reservation&update=true"
 
       - name: 🚀 Deploy to PRE-PROD
@@ -51,7 +51,7 @@ jobs:
           USER: ${{ secrets.TOMCAT_USERNAME }}
           PASS: ${{ secrets.TOMCAT_PASSWORD }}
         run: |
-          echo "Deploy URL: $URL/deploy?path=/train-ticket-reservation&update=true"
+          echo "Deploying to PRE-PROD at $URL"
           curl -v -u "$USER:$PASS" -T target/TrainBook-1.0.0-SNAPSHOT.war "$URL/deploy?path=/train-ticket-reservation&update=true"
 
       - name: 🚀 Deploy to PROD
@@ -60,5 +60,5 @@ jobs:
           USER: ${{ secrets.TOMCAT_USERNAME }}
           PASS: ${{ secrets.TOMCAT_PASSWORD }}
         run: |
-          echo "Deploy URL: $URL/deploy?path=/train-ticket-reservation&update=true"
+          echo "Deploying to PROD at $URL"
           curl -v -u "$USER:$PASS" -T target/TrainBook-1.0.0-SNAPSHOT.war "$URL/deploy?path=/train-ticket-reservation&update=true"
