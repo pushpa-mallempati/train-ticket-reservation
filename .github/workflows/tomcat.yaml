@@ -1,4 +1,4 @@
-name: Deploy train-ticket-reservation to 4 Environments
+name: Build and Deploy train-ticket-reservation
 
 on:
   push:
@@ -9,10 +9,10 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: 📥 Checkout Code
+      - name: 📥 Checkout code
         uses: actions/checkout@v3
 
-      - name: ☕ Set Up Java
+      - name: ☕ Set up Java
         uses: actions/setup-java@v3
         with:
           java-version: '17'
