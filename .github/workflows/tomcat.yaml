@@ -22,10 +22,11 @@ jobs:
           java-version: '17'
 
       - name: 🔨 Build with Maven
+        working-directory: train-ticket-reservation
         run: mvn clean package
 
       - name: 🗂️ List WAR file in target directory
-        run: ls -l target/
+        run: ls -l train-ticket-reservation/target/
 
       - name: 🚀 Deploy to DEV
         env:
@@ -34,7 +35,7 @@ jobs:
           PASS: ${{ secrets.TOMCAT_PASSWORD }}
         run: |
           echo "Deploying to DEV at $URL"
-          curl -v -u "$USER:$PASS" -T target/TrainBook-1.0.0-SNAPSHOT.war "$URL/deploy?path=/train-ticket-reservation&update=true"
+          curl -v -u "$USER:$PASS" -T train-ticket-reservation/target/TrainBook-1.0.0-SNAPSHOT.war "$URL/deploy?path=/train-ticket-reservation&update=true"
 
       - name: 🚀 Deploy to TEST
         env:
@@ -43,7 +44,7 @@ jobs:
           PASS: ${{ secrets.TOMCAT_PASSWORD }}
         run: |
           echo "Deploying to TEST at $URL"
-          curl -v -u "$USER:$PASS" -T target/TrainBook-1.0.0-SNAPSHOT.war "$URL/deploy?path=/train-ticket-reservation&update=true"
+          curl -v -u "$USER:$PASS" -T train-ticket-reservation/target/TrainBook-1.0.0-SNAPSHOT.war "$URL/deploy?path=/train-ticket-reservation&update=true"
 
       - name: 🚀 Deploy to PRE-PROD
         env:
@@ -52,7 +53,7 @@ jobs:
           PASS: ${{ secrets.TOMCAT_PASSWORD }}
         run: |
           echo "Deploying to PRE-PROD at $URL"
-          curl -v -u "$USER:$PASS" -T target/TrainBook-1.0.0-SNAPSHOT.war "$URL/deploy?path=/train-ticket-reservation&update=true"
+          curl -v -u "$USER:$PASS" -T train-ticket-reservation/target/TrainBook-1.0.0-SNAPSHOT.war "$URL/deploy?path=/train-ticket-reservation&update=true"
 
       - name: 🚀 Deploy to PROD
         env:
@@ -61,4 +62,4 @@ jobs:
           PASS: ${{ secrets.TOMCAT_PASSWORD }}
         run: |
           echo "Deploying to PROD at $URL"
-          curl -v -u "$USER:$PASS" -T target/TrainBook-1.0.0-SNAPSHOT.war "$URL/deploy?path=/train-ticket-reservation&update=true"
+          curl -v -u "$USER:$PASS" -T train-ticket-reservation/target/TrainBook-1.0.0-SNAPSHOT.war "$URL/deploy?path=/train-ticket-reservation&update=true"
