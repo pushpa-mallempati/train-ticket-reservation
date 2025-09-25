@@ -1,4 +1,5 @@
 name: Build and Deploy train-ticket-reservation
+
 on:
   push:
     branches: [ master ]
@@ -37,3 +38,27 @@ jobs:
 
       - name: 🚀 Deploy to TEST
         env:
+          URL: ${{ secrets.TOMCAT_URL_TEST }}
+          USER: ${{ secrets.TOMCAT_USERNAME }}
+          PASS: ${{ secrets.TOMCAT_PASSWORD }}
+        run: |
+          echo "Deploy URL: $URL/deploy?path=/train-ticket-reservation&update=true"
+          curl -v -u "$USER:$PASS" -T target/TrainBook-1.0.0-SNAPSHOT.war "$URL/deploy?path=/train-ticket-reservation&update=true"
+
+      - name: 🚀 Deploy to PRE-PROD
+        env:
+          URL: ${{ secrets.TOMCAT_URL_PRE_POD }}
+          USER: ${{ secrets.TOMCAT_USERNAME }}
+          PASS: ${{ secrets.TOMCAT_PASSWORD }}
+        run: |
+          echo "Deploy URL: $URL/deploy?path=/train-ticket-reservation&update=true"
+          curl -v -u "$USER:$PASS" -T target/TrainBook-1.0.0-SNAPSHOT.war "$URL/deploy?path=/train-ticket-reservation&update=true"
+
+      - name: 🚀 Deploy to PROD
+        env:
+          URL: ${{ secrets.TOMCAT_URL_POD }}
+          USER: ${{ secrets.TOMCAT_USERNAME }}
+          PASS: ${{ secrets.TOMCAT_PASSWORD }}
+        run: |
+          echo "Deploy URL: $URL/deploy?path=/train-ticket-reservation&update=true"
+          curl -v -u "$USER:$PASS" -T target/TrainBook-1.0.0-SNAPSHOT.war "$URL/deploy?path=/train-ticket-reservation&update=true"
