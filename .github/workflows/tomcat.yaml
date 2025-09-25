@@ -20,9 +20,11 @@ jobs:
 
       - name: 🔨 Build with Maven
         run: mvn clean package
+        working-directory: train-ticket-reservation
 
-      - name: 🗂️ List WAR file in train-ticket-reservation/target
-        run: ls -l train-ticket-reservation/target/
+      - name: 🗂️ List WAR file in target
+        run: ls -l target/
+        working-directory: train-ticket-reservation
 
       # 🚀 Deploy to DEV
       - name: 🚀 Deploy to DEV
@@ -32,7 +34,8 @@ jobs:
           PASS: ${{ secrets.TOMCAT_PASSWORD }}
         run: |
           echo "Deploy URL: $URL/deploy?path=/train-ticket-reservation&update=true"
-          curl -v -u "$USER:$PASS" -T train-ticket-reservation/target/TrainBook-1.0.0-SNAPSHOT.war "$URL/deploy?path=/train-ticket-reservation&update=true"
+          curl -v -u "$USER:$PASS" -T target/TrainBook-1.0.0-SNAPSHOT.war "$URL/deploy?path=/train-ticket-reservation&update=true"
+        working-directory: train-ticket-reservation
 
       # 🚀 Deploy to TEST
       - name: 🚀 Deploy to TEST
@@ -42,7 +45,8 @@ jobs:
           PASS: ${{ secrets.TOMCAT_PASSWORD }}
         run: |
           echo "Deploy URL: $URL/deploy?path=/train-ticket-reservation&update=true"
-          curl -v -u "$USER:$PASS" -T train-ticket-reservation/target/TrainBook-1.0.0-SNAPSHOT.war "$URL/deploy?path=/train-ticket-reservation&update=true"
+          curl -v -u "$USER:$PASS" -T target/TrainBook-1.0.0-SNAPSHOT.war "$URL/deploy?path=/train-ticket-reservation&update=true"
+        working-directory: train-ticket-reservation
 
       # 🚀 Deploy to PRE-POD
       - name: 🚀 Deploy to PRE-POD
@@ -52,7 +56,8 @@ jobs:
           PASS: ${{ secrets.TOMCAT_PASSWORD }}
         run: |
           echo "Deploy URL: $URL/deploy?path=/train-ticket-reservation&update=true"
-          curl -v -u "$USER:$PASS" -T train-ticket-reservation/target/TrainBook-1.0.0-SNAPSHOT.war "$URL/deploy?path=/train-ticket-reservation&update=true"
+          curl -v -u "$USER:$PASS" -T target/TrainBook-1.0.0-SNAPSHOT.war "$URL/deploy?path=/train-ticket-reservation&update=true"
+        working-directory: train-ticket-reservation
 
       # 🚀 Deploy to POD (Production)
       - name: 🚀 Deploy to POD
@@ -62,4 +67,5 @@ jobs:
           PASS: ${{ secrets.TOMCAT_PASSWORD }}
         run: |
           echo "Deploy URL: $URL/deploy?path=/train-ticket-reservation&update=true"
-          curl -v -u "$USER:$PASS" -T train-ticket-reservation/target/TrainBook-1.0.0-SNAPSHOT.war "$URL/deploy?path=/train-ticket-reservation&update=true"
+          curl -v -u "$USER:$PASS" -T target/TrainBook-1.0.0-SNAPSHOT.war "$URL/deploy?path=/train-ticket-reservation&update=true"
+        working-directory: train-ticket-reservation
