@@ -34,8 +34,7 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     steps:
-      - name: ⬇️ Download WAR artifact
-        uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v4
         with:
           name: war-file
 
@@ -46,12 +45,8 @@ jobs:
           PASS: ${{ secrets.TOMCAT_PASS_DEV }}
         run: |
           WAR_FILE=$(ls *.war | head -n 1)
-          echo "WAR file to deploy: $WAR_FILE"
-          echo "Target URL (DEV): $URL"
-          if [ -z "$URL" ]; then
-            echo "❌ ERROR: TOMCAT_URL_DEV is empty or not set in GitHub secrets."
-            exit 1
-          fi
+          echo "Deploying $WAR_FILE to DEV ($URL)"
+          curl -v -u "$USER:$PASS" "$URL/list"
           curl -v -u "$USER:$PASS" --fail --show-error -T "$WAR_FILE" \
             "$URL/deploy?path=/train-ticket-reservation&update=true"
 
@@ -59,8 +54,7 @@ jobs:
     needs: deploy-dev
     runs-on: ubuntu-latest
     steps:
-      - name: ⬇️ Download WAR artifact
-        uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v4
         with:
           name: war-file
 
@@ -71,12 +65,8 @@ jobs:
           PASS: ${{ secrets.TOMCAT_PASS_TEST }}
         run: |
           WAR_FILE=$(ls *.war | head -n 1)
-          echo "WAR file to deploy: $WAR_FILE"
-          echo "Target URL (TEST): $URL"
-          if [ -z "$URL" ]; then
-            echo "❌ ERROR: TOMCAT_URL_TEST is empty or not set in GitHub secrets."
-            exit 1
-          fi
+          echo "Deploying $WAR_FILE to TEST ($URL)"
+          curl -v -u "$USER:$PASS" "$URL/list"
           curl -v -u "$USER:$PASS" --fail --show-error -T "$WAR_FILE" \
             "$URL/deploy?path=/train-ticket-reservation&update=true"
 
@@ -84,8 +74,7 @@ jobs:
     needs: deploy-test
     runs-on: ubuntu-latest
     steps:
-      - name: ⬇️ Download WAR artifact
-        uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v4
         with:
           name: war-file
 
@@ -96,12 +85,8 @@ jobs:
           PASS: ${{ secrets.TOMCAT_PASS_PRE_POD }}
         run: |
           WAR_FILE=$(ls *.war | head -n 1)
-          echo "WAR file to deploy: $WAR_FILE"
-          echo "Target URL (PRE-POD): $URL"
-          if [ -z "$URL" ]; then
-            echo "❌ ERROR: TOMCAT_URL_PRE_POD is empty or not set in GitHub secrets."
-            exit 1
-          fi
+          echo "Deploying $WAR_FILE to PRE-POD ($URL)"
+          curl -v -u "$USER:$PASS" "$URL/list"
           curl -v -u "$USER:$PASS" --fail --show-error -T "$WAR_FILE" \
             "$URL/deploy?path=/train-ticket-reservation&update=true"
 
@@ -109,8 +94,7 @@ jobs:
     needs: deploy-prepod
     runs-on: ubuntu-latest
     steps:
-      - name: ⬇️ Download WAR artifact
-        uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v4
         with:
           name: war-file
 
@@ -121,11 +105,7 @@ jobs:
           PASS: ${{ secrets.TOMCAT_PASS_POD }}
         run: |
           WAR_FILE=$(ls *.war | head -n 1)
-          echo "WAR file to deploy: $WAR_FILE"
-          echo "Target URL (PROD): $URL"
-          if [ -z "$URL" ]; then
-            echo "❌ ERROR: TOMCAT_URL_POD is empty or not set in GitHub secrets."
-            exit 1
-          fi
+          echo "Deploying $WAR_FILE to PROD ($URL)"
+          curl -v -u "$USER:$PASS" "$URL/list"
           curl -v -u "$USER:$PASS" --fail --show-error -T "$WAR_FILE" \
             "$URL/deploy?path=/train-ticket-reservation&update=true"
