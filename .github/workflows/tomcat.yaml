@@ -46,8 +46,13 @@ jobs:
           PASS: ${{ secrets.TOMCAT_PASS_DEV }}
         run: |
           WAR_FILE=$(ls *.war | head -n 1)
-          echo "Deploying $WAR_FILE to DEV: $URL"
-          curl -v -u "$USER:$PASS" -T "$WAR_FILE" \
+          echo "WAR file to deploy: $WAR_FILE"
+          echo "Target URL (DEV): $URL"
+          if [ -z "$URL" ]; then
+            echo "❌ ERROR: TOMCAT_URL_DEV is empty or not set in GitHub secrets."
+            exit 1
+          fi
+          curl -v -u "$USER:$PASS" --fail --show-error -T "$WAR_FILE" \
             "$URL/deploy?path=/train-ticket-reservation&update=true"
 
   deploy-test:
@@ -66,8 +71,13 @@ jobs:
           PASS: ${{ secrets.TOMCAT_PASS_TEST }}
         run: |
           WAR_FILE=$(ls *.war | head -n 1)
-          echo "Deploying $WAR_FILE to TEST: $URL"
-          curl -v -u "$USER:$PASS" -T "$WAR_FILE" \
+          echo "WAR file to deploy: $WAR_FILE"
+          echo "Target URL (TEST): $URL"
+          if [ -z "$URL" ]; then
+            echo "❌ ERROR: TOMCAT_URL_TEST is empty or not set in GitHub secrets."
+            exit 1
+          fi
+          curl -v -u "$USER:$PASS" --fail --show-error -T "$WAR_FILE" \
             "$URL/deploy?path=/train-ticket-reservation&update=true"
 
   deploy-prepod:
@@ -86,8 +96,13 @@ jobs:
           PASS: ${{ secrets.TOMCAT_PASS_PRE_POD }}
         run: |
           WAR_FILE=$(ls *.war | head -n 1)
-          echo "Deploying $WAR_FILE to PRE-POD: $URL"
-          curl -v -u "$USER:$PASS" -T "$WAR_FILE" \
+          echo "WAR file to deploy: $WAR_FILE"
+          echo "Target URL (PRE-POD): $URL"
+          if [ -z "$URL" ]; then
+            echo "❌ ERROR: TOMCAT_URL_PRE_POD is empty or not set in GitHub secrets."
+            exit 1
+          fi
+          curl -v -u "$USER:$PASS" --fail --show-error -T "$WAR_FILE" \
             "$URL/deploy?path=/train-ticket-reservation&update=true"
 
   deploy-prod:
@@ -106,6 +121,11 @@ jobs:
           PASS: ${{ secrets.TOMCAT_PASS_POD }}
         run: |
           WAR_FILE=$(ls *.war | head -n 1)
-          echo "Deploying $WAR_FILE to PROD: $URL"
-          curl -v -u "$USER:$PASS" -T "$WAR_FILE" \
+          echo "WAR file to deploy: $WAR_FILE"
+          echo "Target URL (PROD): $URL"
+          if [ -z "$URL" ]; then
+            echo "❌ ERROR: TOMCAT_URL_POD is empty or not set in GitHub secrets."
+            exit 1
+          fi
+          curl -v -u "$USER:$PASS" --fail --show-error -T "$WAR_FILE" \
             "$URL/deploy?path=/train-ticket-reservation&update=true"
