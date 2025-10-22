@@ -80,9 +80,9 @@ jobs:
 
       - name: 🚀 Deploy to PRE-POD
         env:
-          URL: ${{ secrets.TOMCAT_URL_PRE_PROD }}
-          USER: ${{ secrets.TOMCAT_USER_PRE_PROD }}
-          PASS: ${{ secrets.TOMCAT_PASS_PRE_PROD }}
+          URL: ${{ secrets.TOMCAT_URL_PRE_POD }}
+          USER: ${{ secrets.TOMCAT_USER_PRE_POD }}
+          PASS: ${{ secrets.TOMCAT_PASS_PRE_POD }}
         run: |
           WAR_FILE=$(ls *.war | head -n 1)
           echo "Deploying $WAR_FILE to PRE-POD ($URL)"
@@ -100,9 +100,9 @@ jobs:
 
       - name: 🚀 Deploy to PROD
         env:
-          URL: ${{ secrets.TOMCAT_URL_PROD }}
-          USER: ${{ secrets.TOMCAT_USER_PROD }}
-          PASS: ${{ secrets.TOMCAT_PASS_PROD }}
+          URL: ${{ secrets.TOMCAT_URL_POD }}
+          USER: ${{ secrets.TOMCAT_USER_POD }}
+          PASS: ${{ secrets.TOMCAT_PASS_POD }}
         run: |
           WAR_FILE=$(ls *.war | head -n 1)
           echo "Deploying $WAR_FILE to PROD ($URL)"
