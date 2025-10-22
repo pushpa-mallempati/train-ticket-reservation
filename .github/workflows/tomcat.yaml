@@ -2,7 +2,7 @@ name: Build and Deploy train-ticket-reservation
 
 on:
   push:
-    branches: [master]
+    branches: [ master ]
   workflow_dispatch:
 
 jobs:
@@ -22,7 +22,7 @@ jobs:
         run: mvn clean package -DskipTests
 
       - name: 🗂 Find WAR file
-        run: echo "WAR_FILE=$(find target -name '*.war' | head -n 1)" >> $GITHUB_ENV
+        run: echo "WAR_FILE=$(ls target/*.war | head -n 1)" >> $GITHUB_ENV
 
       - name: ⬆️ Upload WAR artifact
         uses: actions/upload-artifact@v4
@@ -44,7 +44,7 @@ jobs:
           USER: ${{ secrets.TOMCAT_USER_DEV }}
           PASS: ${{ secrets.TOMCAT_PASS_DEV }}
         run: |
-          WAR_FILE=$(find . -name '*.war' | head -n 1)
+          WAR_FILE=$(ls *.war | head -n 1)
           echo "Deploying $WAR_FILE to DEV ($URL)"
           curl -v -u "$USER:$PASS" "$URL/list"
           curl -v -u "$USER:$PASS" --fail --show-error -T "$WAR_FILE" \
@@ -64,13 +64,13 @@ jobs:
           USER: ${{ secrets.TOMCAT_USER_TEST }}
           PASS: ${{ secrets.TOMCAT_PASS_TEST }}
         run: |
-          WAR_FILE=$(find . -name '*.war' | head -n 1)
+          WAR_FILE=$(ls *.war | head -n 1)
           echo "Deploying $WAR_FILE to TEST ($URL)"
           curl -v -u "$USER:$PASS" "$URL/list"
           curl -v -u "$USER:$PASS" --fail --show-error -T "$WAR_FILE" \
             "$URL/deploy?path=/train-ticket-reservation&update=true"
 
-  deploy-preprod:
+  deploy-prepod:
     needs: deploy-test
     runs-on: ubuntu-latest
     steps:
@@ -78,20 +78,20 @@ jobs:
         with:
           name: war-file
 
-      - name: 🚀 Deploy to PREPROD
+      - name: 🚀 Deploy to PRE-POD
         env:
-          URL: ${{ secrets.TOMCAT_URL_PREPROD }}
-          USER: ${{ secrets.TOMCAT_USER_PREPROD }}
-          PASS: ${{ secrets.TOMCAT_PASS_PREPROD }}
+          URL: ${{ secrets.TOMCAT_URL_PRE_PROD }}
+          USER: ${{ secrets.TOMCAT_USER_PRE_PROD }}
+          PASS: ${{ secrets.TOMCAT_PASS_PRE_PROD }}
         run: |
-          WAR_FILE=$(find . -name '*.war' | head -n 1)
-          echo "Deploying $WAR_FILE to PREPROD ($URL)"
+          WAR_FILE=$(ls *.war | head -n 1)
+          echo "Deploying $WAR_FILE to PRE-POD ($URL)"
           curl -v -u "$USER:$PASS" "$URL/list"
           curl -v -u "$USER:$PASS" --fail --show-error -T "$WAR_FILE" \
             "$URL/deploy?path=/train-ticket-reservation&update=true"
 
   deploy-prod:
-    needs: deploy-preprod
+    needs: deploy-prepod
     runs-on: ubuntu-latest
     steps:
       - uses: actions/download-artifact@v4
@@ -104,7 +104,7 @@ jobs:
           USER: ${{ secrets.TOMCAT_USER_PROD }}
           PASS: ${{ secrets.TOMCAT_PASS_PROD }}
         run: |
-          WAR_FILE=$(find . -name '*.war' | head -n 1)
+          WAR_FILE=$(ls *.war | head -n 1)
           echo "Deploying $WAR_FILE to PROD ($URL)"
           curl -v -u "$USER:$PASS" "$URL/list"
           curl -v -u "$USER:$PASS" --fail --show-error -T "$WAR_FILE" \
