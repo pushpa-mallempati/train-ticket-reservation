@@ -78,34 +78,35 @@ jobs:
         with:
           name: war-file
 
-      - name: 🚀 Deploy to PRE-POD
+      - name: 🚀 Deploy to PREPROD
         env:
-          URL: ${{ secrets.TOMCAT_URL_PRE_POD }}
-          USER: ${{ secrets.TOMCAT_USER_PRE_POD }}
-          PASS: ${{ secrets.TOMCAT_PASS_PRE_POD }}
+          URL: ${{ secrets.TOMCAT_URL_PREPROD }}
+          USER: ${{ secrets.TOMCAT_USER_PREPROD }}
+          PASS: ${{ secrets.TOMCAT_PASS_PREPROD }}
         run: |
           WAR_FILE=$(ls *.war | head -n 1)
-          echo "Deploying $WAR_FILE to PRE-POD ($URL)"
+          echo "Deploying $WAR_FILE to PRE-PROD ($URL)"
           curl -v -u "$USER:$PASS" "$URL/list"
           curl -v -u "$USER:$PASS" --fail --show-error -T "$WAR_FILE" \
             "$URL/deploy?path=/train-ticket-reservation&update=true"
-
+            
   deploy-prod:
-    needs: deploy-prepod
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/download-artifact@v4
-        with:
+      needs: deploy-prepod
+      runs-on: ubuntu-latest
+      steps:
+       - uses: actions/download-artifact@v4
+         with:
           name: war-file
 
-      - name: 🚀 Deploy to PROD
-        env:
+       - name: 🚀 Deploy to PROD
+         env:
           URL: ${{ secrets.TOMCAT_URL_POD }}
           USER: ${{ secrets.TOMCAT_USER_POD }}
           PASS: ${{ secrets.TOMCAT_PASS_POD }}
-        run: |
-          WAR_FILE=$(ls *.war | head -n 1)
-          echo "Deploying $WAR_FILE to PROD ($URL)"
-          curl -v -u "$USER:$PASS" "$URL/list"
-          curl -v -u "$USER:$PASS" --fail --show-error -T "$WAR_FILE" \
-            "$URL/deploy?path=/train-ticket-reservation&update=true"
+          run: |
+           WAR_FILE=$(ls *.war | head -n 1)
+           echo "Deploying $WAR_FILE to PROD ($URL)"
+           curl -v -u "$USER:$PASS" "$URL/list"
+           curl -v -u "$USER:$PASS" --fail --show-error -T "$WAR_FILE" \
+           "$URL/deploy?path=/train-ticket-reservation&update=true"
+            
