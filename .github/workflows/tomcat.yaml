@@ -109,4 +109,14 @@ jobs:
           curl -v -u "$USER:$PASS" "$URL/list"
           curl -v -u "$USER:$PASS" --fail --show-error -T "$WAR_FILE" \
             "$URL/deploy?path=/train-ticket-reservation&update=true"
+            - name: 🔔 Notify external API
+            env:
+            API_URL: ${{ secrets.RESERVATION_API_URL }}
+            API_TOKEN: ${{ secrets.RESERVATION_API_TOKEN }}
+            run: |
+            curl -X POST "$API_URL/train-ticket-reservation/updateReservation" \
+            -H "Authorization: Bearer $API_TOKEN" \
+            -H "Content-Type: application/json" \
+            -d '{"reservationId": "12345", "status": "confirmed"}'
+
 
