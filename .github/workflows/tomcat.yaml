@@ -2,7 +2,7 @@ name: CI/CD - Build → Sonar → Nexus → Tomcat
 
 on:
   push:
-    branches: [dev, test, pre-prod, main]
+    branches: [dev, test, pre-prod, master]
   workflow_dispatch:
 
 jobs:
