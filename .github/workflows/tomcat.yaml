@@ -1,4 +1,4 @@
-name: Build and Deploy train-ticket-reservation
+name: Build, Scan, Store, and Deploy train-ticket-reservation
 
 on:
   push:
@@ -11,6 +11,14 @@ jobs:
     steps:
       - name: 📥 Checkout code
         uses: actions/checkout@v4
+
+      - name: ⚡ Cache Maven dependencies
+        uses: actions/cache@v3
+        with:
+          path: ~/.m2/repository
+          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            ${{ runner.os }}-maven-
 
       - name: ☕ Set up Java
         uses: actions/setup-java@v4
@@ -30,82 +38,57 @@ jobs:
           name: war-file
           path: ${{ env.WAR_FILE }}
 
-  deploy-dev:
+  snyk-scan:
+    runs-on: ubuntu-latest
     needs: build
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🧪 Run Snyk to check for vulnerabilities
+        uses: snyk/actions/maven@master
+        continue-on-error: false
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        with:
+          args: --severity-threshold=medium
+
+  nexus-deploy:
     runs-on: ubuntu-latest
+    needs: snyk-scan
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: ⬇️ Download WAR artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: war-file
+
+      - name: 🏗 Deploy WAR to Nexus
+        run: |
+          WAR_FILE=$(ls *.war | head -n 1)
+          echo "Deploying $WAR_FILE to Nexus..."
+          mvn deploy:deploy-file \
+            -Durl=${{ secrets.NEXUS_URL }} \
+            -DrepositoryId=${{ secrets.NEXUS_REPO_ID }} \
+            -Dfile=$WAR_FILE \
+            -DgroupId=com.example \
+            -DartifactId=train-ticket-reservation \
+            -Dversion=1.0.0 \
+            -Dpackaging=war
+
+  deploy-dev:
+    runs-on: ubuntu-latest
+    needs: nexus-deploy
     steps:
       - uses: actions/download-artifact@v4
         with:
           name: war-file
 
-      - name: 🚀 Deploy to DEV
-        env:
-          URL: ${{ secrets.TOMCAT_URL_DEV }}
-          USER: ${{ secrets.TOMCAT_USER_DEV }}
-          PASS: ${{ secrets.TOMCAT_PASS_DEV }}
+      - name: 🚀 Deploy to Tomcat
         run: |
           WAR_FILE=$(ls *.war | head -n 1)
-          echo "Deploying $WAR_FILE to DEV ($URL)"
-          curl -v -u "$USER:$PASS" "$URL/list"
-          curl -v -u "$USER:$PASS" --fail --show-error -T "$WAR_FILE" \
-            "$URL/deploy?path=/train-ticket-reservation&update=true"
-
-  deploy-test:
-    needs: deploy-dev
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/download-artifact@v4
-        with:
-          name: war-file
-
-      - name: 🚀 Deploy to TEST
-        env:
-          URL: ${{ secrets.TOMCAT_URL_TEST }}
-          USER: ${{ secrets.TOMCAT_USER_TEST }}
-          PASS: ${{ secrets.TOMCAT_PASS_TEST }}
-        run: |
-          WAR_FILE=$(ls *.war | head -n 1)
-          echo "Deploying $WAR_FILE to TEST ($URL)"
-          curl -v -u "$USER:$PASS" "$URL/list"
-          curl -v -u "$USER:$PASS" --fail --show-error -T "$WAR_FILE" \
-            "$URL/deploy?path=/train-ticket-reservation&update=true"
-
-  deploy-preprod:
-   needs: deploy-test
-   runs-on: ubuntu-latest
-   steps:
-    - uses: actions/download-artifact@v4
-      with:
-        name: war-file
-
-    - name: 🚀 Deploy to PREPROD
-      env:
-        URL: ${{ secrets.TOMCAT_URL_PREPROD }}
-        USER: ${{ secrets.TOMCAT_USER_PREPROD }}
-        PASS: ${{ secrets.TOMCAT_PASS_PREPROD }}
-      run: |
-        WAR_FILE=$(find . -name '*.war' | head -n 1)
-        echo "Deploying $WAR_FILE to PREPROD ($URL)"
-        curl -v -u "$USER:$PASS" "$URL/list"
-        curl -v -u "$USER:$PASS" --fail --show-error -T "$WAR_FILE" \
-          "$URL/deploy?path=/train-ticket-reservation&update=true"
-          
-  deploy-prod:
-    needs: deploy-preprod
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/download-artifact@v4
-      with:
-        name: war-file
-          
-    - name: 🚀 Deploy to PROD
-      env:
-        URL: ${{ secrets.TOMCAT_URL_PROD }}
-        USER: ${{ secrets.TOMCAT_USER_PROD }}
-        PASS: ${{ secrets.TOMCAT_PASS_PROD }}
-      run: |
-        WAR_FILE=$(find . -name '*.war' | head -n 1)
-        echo "Deploying $WAR_FILE to PROD ($URL)"
-        curl -v -u "$USER:$PASS" "$URL/list"
-        curl -v -u "$USER:$PASS" --fail --show-error -T "$WAR_FILE" \
-          "$URL/deploy?path=/train-ticket-reservation&update=true"
+          echo "Deploying $WAR_FILE to Tomcat..."
+          curl -v -u "${{ secrets.TOMCAT_USERNAME }}:${{ secrets.TOMCAT_PASSWORD }}" \
+            -T "$WAR_FILE" \
+            "${{ secrets.TOMCAT_URL }}/deploy?path=/train-ticket&update=true"
