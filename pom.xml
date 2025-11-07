@@ -1,93 +1,89 @@
-name: CI/CD - Build → Sonar → Nexus → Tomcat
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+	<groupId>TrainBook</groupId>
+	<artifactId>TrainBook</artifactId>
+	<version>1.0.0-SNAPSHOT</version>
+	<packaging>war</packaging>
+	<build>
+		<sourceDirectory>src</sourceDirectory>
+		<resources>
+			<resource>
+				<directory>src</directory>
+				<excludes>
+					<exclude>**/*.java</exclude>
+				</excludes>
+			</resource>
+		</resources>
+		<plugins>
+			<plugin>
+				<artifactId>maven-compiler-plugin</artifactId>
+				<version>3.8.1</version>
+				<configuration>
+					<source>1.8</source>
+					<target>1.8</target>
+				</configuration>
+			</plugin>
+			<plugin>
+				<artifactId>maven-war-plugin</artifactId>
+				<version>3.2.3</version>
+				<configuration>
+					<warSourceDirectory>WebContent</warSourceDirectory>
+				</configuration>
+			</plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-dependency-plugin</artifactId>
+				<version>2.3</version>
+				<executions>
+					<execution>
+						<phase>package</phase>
+						<goals>
+							<goal>copy</goal>
+						</goals>
+						<configuration>
+							<artifactItems>
+								<artifactItem>
+									<groupId>com.github.jsimone</groupId>
+									<artifactId>webapp-runner</artifactId>
+									<version>8.0.30.2</version>
+									<destFileName>webapp-runner.jar</destFileName>
+								</artifactItem>
+							</artifactItems>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>			
+    <plugin>
+      <groupId>io.snyk</groupId>
+      <artifactId>snyk-maven-plugin</artifactId>
+      <version>2.0.0</version>
+      <inherited>false</inherited>
+      <configuration>
+        <org>Venn1991</org>
+      </configuration>
+    </plugin>
+		</plugins>
+	</build>
+	<dependencies>
 
-on:
-  push:
-    branches: [dev, test, pre-prod, master]
-  workflow_dispatch:
+		<dependency>
+			<groupId>org.postgresql</groupId>
+			<artifactId>postgresql</artifactId>
+			<version>42.3.7</version>
+		</dependency>
 
-jobs:
-  build-and-scan:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
 
-      # ✅ Match Java version from pom.xml
-      - uses: actions/setup-java@v4
-        with:
-          distribution: 'temurin'
-          java-version: '8'
+		<dependency>
+			<groupId>mysql</groupId>
+			<artifactId>mysql-connector-java</artifactId>
+			<version>8.0.28</version>
+		</dependency>
 
-      # ✅ Build WAR file
-      - run: mvn -B clean package
 
-      # Optional: Verify WAR exists
-      - run: ls -lh target
-
-      # ✅ SonarQube code scan
-      - run: mvn -B sonar:sonar \
-          -Dsonar.host.url=${{ secrets.SONAR_HOST_URL }} \
-          -Dsonar.login=${{ secrets.SONAR_TOKEN }}
-
-      # ✅ Upload WAR artifact for later jobs
-      - uses: actions/upload-artifact@v4
-        with:
-          name: app-war
-          path: target/*.war
-
-  publish-to-nexus:
-    needs: build-and-scan
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/download-artifact@v4
-        with:
-          name: app-war
-          path: target
-
-      # Check that WAR was downloaded
-      - run: ls -lh target
-
-      # ✅ Deploy WAR to Nexus
-      - run: |
-          VERSION=1.0.${{ github.run_number }}
-          mvn deploy:deploy-file \
-            -Durl=${{ secrets.NEXUS_URL }} \
-            -DrepositoryId=nexus \
-            -Dfile=target/*.war \
-            -DgroupId=com.example \
-            -DartifactId=myapp \
-            -Dversion=$VERSION \
-            -Dpackaging=war \
-            -DgeneratePom=true
-
-  deploy-to-tomcat:
-    needs: publish-to-nexus
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/download-artifact@v4
-        with:
-          name: app-war
-          path: target
-
-      # ✅ Deploy WAR to Tomcat Manager
-      - run: |
-          curl -u ${{ secrets.TOMCAT_USERNAME }}:${{ secrets.TOMCAT_PASSWORD }} \
-            -T target/*.war \
-            "${{ secrets.TOMCAT_URL }}/manager/text/deploy?path=/myapp&update=true"
-
-  deploy-to-snyk:
-    needs: build-and-scan
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-java@v4
-        with:
-          distribution: 'temurin'
-          java-version: '8'
-
-      # ✅ Run Snyk vulnerability scan (non-blocking)
-      - name: Run Snyk to check for vulnerabilities
-        uses: snyk/actions/maven@master
-        continue-on-error: true
-        env:
-          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+		<dependency>
+			<groupId>javax.servlet</groupId>
+			<artifactId>javax.servlet-api</artifactId>
+			<version>3.1.0</version>
+		</dependency>
+	</dependencies>
+</project>
