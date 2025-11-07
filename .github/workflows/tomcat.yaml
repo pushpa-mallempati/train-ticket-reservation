@@ -21,8 +21,19 @@ jobs:
           name: app-war
           path: target/*.war
 
-  publish-to-nexus:
+  snyk-scan:
     needs: build-and-scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run Snyk to check for vulnerabilities
+        uses: snyk/actions/maven@master
+        continue-on-error: true
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+
+  publish-to-nexus:
+    needs: snyk-scan
     runs-on: ubuntu-latest
     steps:
       - uses: actions/download-artifact@v4
@@ -53,14 +64,3 @@ jobs:
           curl -u ${{ secrets.TOMCAT_USERNAME }}:${{ secrets.TOMCAT_PASSWORD }} \
             -T target/*.war \
             "${{ secrets.TOMCAT_URL }}/manager/text/deploy?path=/myapp&update=true"
-
-  deploy-to-snyk:
-   runs-on: ubuntu-latest
-   steps:
-      - uses: actions/checkout@master
-      - name: Run Snyk to check for vulnerabilities
-        uses: snyk/actions/maven@master
-        continue-on-error: true
-        env:
-          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
-      
