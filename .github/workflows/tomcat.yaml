@@ -30,6 +30,7 @@ jobs:
         run: snyk test --severity-threshold=medium
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+          JAVA_HOME: ${{ env.JAVA_HOME }}
 
       - name: 🧠 SonarQube Code Analysis
         run: mvn -B sonar:sonar \
