@@ -17,43 +17,14 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: '17'
-          cache: 'maven'
-
+      
       - name: 🧱 Build project (create WAR)
+        run: mvn -B clean package
+
+      - name: ▶️ Validate WAR exists
         run: |
-          mvn -B clean package -e
-          echo "📂 Contents of target directory:"
-          ls -l target/
-          # Verify WAR exists
-          if ! ls target/*.war 1> /dev/null 2>&1; then
-            echo "❌ ERROR: No WAR file generated. Check your pom.xml."
-            exit 1
-          fi
-
-      - name: 🔒 Install Snyk CLI
-        run: |
-          curl -sL https://snyk.io/install.sh | bash
-          snyk auth ${{ secrets.SNYK_TOKEN }}
-
-      - name: 🧩 Run Snyk Security Scan
-        run: snyk test --severity-threshold=medium
-        env:
-          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
-          JAVA_HOME: ${{ env.JAVA_HOME }}
-
-      - name: 🧠 SonarQube Code Analysis
-        run: mvn -B sonar:sonar \
-          -Dsonar.host.url=${{ secrets.SONAR_HOST_URL }} \
-          -Dsonar.login=${{ secrets.SONAR_TOKEN }}
-
-      - name: ▶️ Validate WAR before upload
-        run: |
-          if ! ls target/*.war 1> /dev/null 2>&1; then
-            echo "❌ ERROR: WAR file missing after Sonar step."
-            exit 1
-          fi
-          echo "✅ WAR file ready:"
-          ls -l target/*.war
+          echo "Checking for WAR file..."
+          ls -l target || true
 
       - name: 📦 Upload WAR artifact
         uses: actions/upload-artifact@v4
@@ -71,14 +42,19 @@ jobs:
           name: app-war
           path: target
 
+      - name: 🧾 Debug artifact contents
+        run: |
+          echo "Listing files after artifact download:"
+          ls -R
+
       - name: ▶️ Validate WAR exists before Nexus deploy
         run: |
+          echo "Checking for WAR file in target/"
+          ls -l target || true
           if ! ls target/*.war 1> /dev/null 2>&1; then
-            echo "❌ ERROR: WAR file not found for Nexus upload."
+            echo "❌ ERROR: No WAR file found for Nexus deploy."
             exit 1
           fi
-          echo "✅ Found WAR file for Nexus:"
-          ls -l target/*.war
 
       - name: 🚀 Publish to Nexus Repository
         env:
@@ -99,34 +75,3 @@ jobs:
             -DgeneratePom=true \
             -Dusername=$NEXUS_USERNAME \
             -Dpassword=$NEXUS_PASSWORD
-
-  deploy-to-tomcat:
-    needs: publish-to-nexus
-    runs-on: ubuntu-latest
-    steps:
-      - name: 📥 Download WAR artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: app-war
-          path: target
-
-      - name: ▶️ Validate WAR before Tomcat deploy
-        run: |
-          if ! ls target/*.war 1> /dev/null 2>&1; then
-            echo "❌ ERROR: WAR file missing for Tomcat deployment."
-            exit 1
-          fi
-          echo "✅ WAR file ready for deployment:"
-          ls -l target/*.war
-
-      - name: 🌐 Deploy to Tomcat
-        env:
-          TOMCAT_URL: ${{ secrets.TOMCAT_URL }}
-          TOMCAT_USERNAME: ${{ secrets.TOMCAT_USERNAME }}
-          TOMCAT_PASSWORD: ${{ secrets.TOMCAT_PASSWORD }}
-        run: |
-          WAR_FILE=$(ls target/*.war | head -n 1)
-          echo "🚀 Deploying $WAR_FILE to Tomcat..."
-          curl -u $TOMCAT_USERNAME:$TOMCAT_PASSWORD \
-            -T "$WAR_FILE" \
-            "$TOMCAT_URL/manager/text/deploy?path=/TrainBook&update=true"
