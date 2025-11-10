@@ -43,10 +43,17 @@ jobs:
           name: app-war
           path: target
           
-      # 2. Fixes the 'war not found' error by finding the exact filename
+      # ⚠️ FIX: Configure Maven settings.xml with Nexus credentials to resolve 401 Unauthorized
+      - name: Configure Nexus Credentials
+        run: |
+          mkdir -p ~/.m2
+          # Create a minimal settings.xml file containing the 'nexus' server ID and credentials
+          echo "<settings><servers><server><id>nexus</id><username>${{ secrets.NEXUS_USERNAME }}</username><password>${{ secrets.NEXUS_PASSWORD }}</password></server></servers></settings>" > ~/.m2/settings.xml
+
+      # 2. Deploy to Nexus (Now uses the settings.xml created above)
       - name: Deploy to Nexus
         run: |
-          # Find the exact name of the downloaded .war file (e.g., target/TrainBook-1.0.0-SNAPSHOT.war)
+          # Find the exact name of the downloaded .war file
           WAR_FILE=$(find target -name "*.war" -print -quit)
           
           if [ -z "$WAR_FILE" ]; then
@@ -82,7 +89,7 @@ jobs:
           name: app-war
           path: target
           
-      # 2. Fixes the file reference for the curl command
+      # 2. Deploys the WAR file using cURL
       - name: Deploy to Tomcat
         run: |
           # Find the exact name of the downloaded .war file
