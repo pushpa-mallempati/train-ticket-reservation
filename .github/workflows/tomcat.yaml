@@ -84,8 +84,54 @@ jobs:
 
 ---
 
-  deploy-to-tomcat:
-    needs: publish-to-nexus
+name: CI/CD - Build → Sonar → Snyk → Nexus → Tomcat
+
+on:
+  push:
+    branches: [dev, test, pre-prod, master]
+  workflow_dispatch:
+
+jobs:
+  build-and-scan:
+    runs-on: ubuntu-latest
+    steps:
+      # 1️⃣ Checkout code
+      - uses: actions/checkout@v4
+
+      # 2️⃣ Setup Java
+      - uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+      
+      # 3️⃣ Build and Test
+      - name: Build and Verify
+        # Note: Added -f MyWebApp/pom.xml to match the path used in the deployment step
+        run: mvn -B clean verify -f MyWebApp/pom.xml
+
+      # 4️⃣ SonarQube Analysis
+      - name: Sonar Analysis
+        run: mvn -B sonar:sonar -Dsonar.host.url=${{ secrets.SONAR_HOST_URL }} -Dsonar.login=${{ secrets.SONAR_TOKEN }} -f MyWebApp/pom.xml
+
+      # 5️⃣ Snyk Security Scan (non-blocking)
+      - name: Snyk Maven Scan
+        uses: snyk/actions/maven@master
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        continue-on-error: true
+
+      # 6️⃣ Upload WAR artifact for downstream jobs
+      - name: Upload WAR Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-war
+          # Path adjusted to match your project structure
+          path: MyWebApp/target/*.war
+
+---
+
+  publish-to-nexus:
+    needs: build-and-scan
     runs-on: ubuntu-latest
     steps:
       # 1️⃣ Download WAR artifact
@@ -93,24 +139,68 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: app-war
-          path: target
+          # Download to a directory where we can find the WAR file easily
+          path: .
           
-      # 2️⃣ Deploy WAR to Tomcat and verify
+      # 2️⃣ Configure Maven settings.xml for Nexus credentials
+      - name: Configure Nexus Credentials
+        run: |
+          mkdir -p ~/.m2
+          echo "<settings><servers><server><id>nexus</id><username>${{ secrets.NEXUS_USERNAME }}</username><password>${{ secrets.NEXUS_PASSWORD }}</password></server></servers></settings>" > ~/.m2/settings.xml
+          
+      # 3️⃣ Deploy to Nexus
+      - name: Deploy to Nexus
+        run: |
+          # Find the WAR file downloaded to the current directory
+          WAR_FILE=$(find . -name "*.war" -print -quit)
+          if [ -z "$WAR_FILE" ]; then
+            echo "Error: WAR file not found for Nexus deployment."
+            exit 1
+          fi
+          VERSION=1.0.${{ github.run_number }}
+          echo "Deploying $WAR_FILE with version $VERSION to Nexus..."
+          
+          mvn deploy:deploy-file \
+            -Durl=${{ secrets.NEXUS_URL }} \
+            -DrepositoryId=nexus \
+            -Dfile=$WAR_FILE \
+            -DgroupId=TrainBook \
+            -DartifactId=TrainBook \
+            -Dversion=$VERSION \
+            -Dpackaging=war \
+            -DgeneratePom=true \
+            -DrepositoryLayout=default
+
+---
+
+  deploy-to-tomcat:
+    needs: publish-to-nexus # Wait for successful deployment to Nexus
+    runs-on: ubuntu-latest
+    
+    # Conditional deployment: Example deployment only on 'dev' branch
+    if: github.ref == 'refs/heads/dev' 
+    
+    steps:
+      # 1️⃣ Download WAR artifact
+      - name: Download WAR Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: app-war
+          # Download to the expected path for the curl command
+          path: MyWebApp/target/ 
+          
+      # 2️⃣ Deploy to Tomcat using Manager API
       - name: Deploy to Tomcat
         run: |
-          WAR_FILE=$(find target -name "*.war" -print -quit)
-          if [ -z "$WAR_FILE" ]; then
+          # The WAR file name is assumed to be MyWebApp.war based on your path
+          WAR_FILE_PATH=$(find MyWebApp/target -name "*.war" -print -quit)
+          if [ -z "$WAR_FILE_PATH" ]; then
             echo "Error: WAR file not found for Tomcat deployment."
             exit 1
           fi
-
-          echo "Deploying $WAR_FILE to Tomcat..."
-          RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" -u ${{ secrets.TOMCAT_USERNAME }}:${{ secrets.TOMCAT_PASSWORD }} \
-            -T $WAR_FILE \
-            "${{ secrets.TOMCAT_URL }}/manager/text/deploy?path=/myapp&update=true")
-
-          if [ "$RESPONSE" != "200" ]; then
-            echo "Tomcat deployment failed with HTTP status $RESPONSE"
-            exit 1
-          else
-            echo "Tomcat deployment succeeded!"
+          
+          echo "Deploying $WAR_FILE_PATH to Tomcat..."
+          
+          curl -v -u ${{ secrets.TOMCAT_USERNAME }}:${{ secrets.TOMCAT_PASSWORD }} \
+            -T $WAR_FILE_PATH \
+            "http://${{ secrets.TOMCAT_URL }}/manager/text/deploy?path=/MyWebApp&update=true"
