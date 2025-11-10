@@ -28,10 +28,10 @@ jobs:
 
       # 5️⃣ Snyk Security Scan (non-blocking)
       - name: Snyk Maven Scan
-        uses: snyk/actions/maven@v2
+        uses: snyk/actions/maven@master
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
-        continue-on-error: true  # scan will not stop the workflow
+        continue-on-error: true  # set false to fail workflow on vulnerabilities
 
       # 6️⃣ Upload WAR artifact for downstream jobs
       - name: Upload WAR Artifact
