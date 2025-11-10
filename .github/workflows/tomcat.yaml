@@ -14,94 +14,43 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: '17'
-      
-      # 1. Build and Test (Creates the .war file in target/)
-      - name: Build and Verify
-        run: mvn -B clean verify
-      
-      # 2. Sonar scan step
-      - name: Sonar Analysis
-        run: mvn -B sonar:sonar -Dsonar.host.url=${{ secrets.SONAR_HOST_URL }} -Dsonar.login=${{ secrets.SONAR_TOKEN }}
-      
-      # 3. Uploads the created WAR file (e.g., target/TrainBook-1.0.0-SNAPSHOT.war)
-      - name: Upload Artifact
-        uses: actions/upload-artifact@v4
+      - run: mvn -B clean verify
+      - run: mvn -B sonar:sonar -Dsonar.host.url=${{ secrets.SONAR_HOST_URL }} -Dsonar.login=${{ secrets.SONAR_TOKEN }}
+      - uses: actions/upload-artifact@v4
         with:
           name: app-war
           path: target/*.war
-          
----
 
   publish-to-nexus:
     needs: build-and-scan
     runs-on: ubuntu-latest
     steps:
-      # 1. Downloads the artifact into the target/ directory
-      - name: Download WAR Artifact
-        uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v4
         with:
           name: app-war
           path: target
-          
-      # ⚠️ FIX: Configure Maven settings.xml with Nexus credentials to resolve 401 Unauthorized
-      - name: Configure Nexus Credentials
-        run: |
-          mkdir -p ~/.m2
-          # Create a minimal settings.xml file containing the 'nexus' server ID and credentials
-          echo "<settings><servers><server><id>nexus</id><username>${{ secrets.NEXUS_USERNAME }}</username><password>${{ secrets.NEXUS_PASSWORD }}</password></server></servers></settings>" > ~/.m2/settings.xml
-
-      # 2. Deploy to Nexus (Now uses the settings.xml created above)
-      - name: Deploy to Nexus
-        run: |
-          # Find the exact name of the downloaded .war file
-          WAR_FILE=$(find target -name "*.war" -print -quit)
-          
-          if [ -z "$WAR_FILE" ]; then
-            echo "Error: WAR file not found for Nexus deployment."
-            exit 1
-          fi
-          
-          # Define the new version for Nexus deployment
+      - run: |
           VERSION=1.0.${{ github.run_number }}
-          
-          echo "Deploying $WAR_FILE with version $VERSION to Nexus..."
-          # Deploy using the exact file path and POM details
           mvn deploy:deploy-file \
             -Durl=${{ secrets.NEXUS_URL }} \
             -DrepositoryId=nexus \
-            -Dfile=$WAR_FILE \
-            -DgroupId=TrainBook \
-            -DartifactId=TrainBook \
+            -Dfile=target/*.war \
+            -DgroupId=com.example \
+            -DartifactId=myapp \
             -Dversion=$VERSION \
             -Dpackaging=war \
             -DgeneratePom=true
-            
----
 
   deploy-to-tomcat:
     needs: publish-to-nexus
     runs-on: ubuntu-latest
     steps:
-      # 1. Downloads the artifact into the target/ directory
-      - name: Download WAR Artifact
-        uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v4
         with:
           name: app-war
           path: target
-          
-      # 2. Deploys the WAR file using cURL
-      - name: Deploy to Tomcat
-        run: |
-          # Find the exact name of the downloaded .war file
-          WAR_FILE=$(find target -name "*.war" -print -quit)
-          
-          if [ -z "$WAR_FILE" ]; then
-            echo "Error: WAR file not found for Tomcat deployment."
-            exit 1
-          fi
-          
-          # Deploy using the exact file path stored in $WAR_FILE
-          echo "Deploying $WAR_FILE to Tomcat..."
-          curl -u ${{ secrets.TOMCAT_USERNAME }}:${{ secrets.TOMCAT_PASSWORD }} \
-            -T $WAR_FILE \
-            "${{ secrets.TOMCAT_URL }}/manager/text/deploy?path=/myapp&update=true"
+      - run: |
+          curl -u ${{ secrets.TOMCAT_USER }}:${{ secrets.TOMCAT_PASSWORD }} \
+            -T target/*.war \
+            "${{ secrets.TOMCAT_MANAGER_URL }}/manager/text/deploy?path=/myapp&update=true"
+
