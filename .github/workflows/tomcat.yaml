@@ -1,8 +1,8 @@
-name: CI/CD - Build → Snyk → SonarQube → Nexus → Tomcat
+name: CI/CD - Build → Snyk → Sonar → Nexus → Tomcat
 
 on:
   push:
-    branches: [ dev, test, pre-prod, master ]
+    branches: [dev, test, pre-prod, main]
   workflow_dispatch:
 
 jobs:
@@ -21,19 +21,20 @@ jobs:
       - name: 🧱 Build project
         run: mvn -B clean verify
 
-      - name: 🔒 Snyk Security Scan
-        uses: snyk/actions/maven@master
+      - name: 🔒 Install Snyk CLI
+        run: |
+          curl -sL https://snyk.io/install.sh | bash
+          snyk auth ${{ secrets.SNYK_TOKEN }}
+
+      - name: 🧩 Run Snyk Security Scan
+        run: snyk test --severity-threshold=medium
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
-        with:
-          command: test
 
-      - name: 🔍 SonarQube Code Analysis
-        run: |
-          mvn -B verify org.sonarsource.scanner.maven:sonar-maven-plugin:sonar \
-            -Dsonar.projectKey=TrainBook \
-            -Dsonar.host.url=${{ secrets.SONAR_HOST_URL }} \
-            -Dsonar.login=${{ secrets.SONAR_TOKEN }}
+      - name: 🧠 SonarQube Code Analysis
+        run: mvn -B sonar:sonar \
+          -Dsonar.host.url=${{ secrets.SONAR_HOST_URL }} \
+          -Dsonar.login=${{ secrets.SONAR_TOKEN }}
 
       - name: 📦 Upload WAR artifact
         uses: actions/upload-artifact@v4
@@ -51,21 +52,24 @@ jobs:
           name: app-war
           path: target
 
-      - name: 📤 Publish to Nexus Repository
+      - name: 🚀 Publish to Nexus Repository
+        env:
+          NEXUS_URL: ${{ secrets.NEXUS_URL }}
+          NEXUS_USERNAME: ${{ secrets.NEXUS_USERNAME }}
+          NEXUS_PASSWORD: ${{ secrets.NEXUS_PASSWORD }}
         run: |
           VERSION=1.0.${{ github.run_number }}
           mvn deploy:deploy-file \
-            -Durl=${{ secrets.NEXUS_URL }} \
+            -Durl=$NEXUS_URL \
             -DrepositoryId=nexus \
             -Dfile=target/*.war \
             -DgroupId=com.example \
-            -DartifactId=trainbook \
+            -DartifactId=myapp \
             -Dversion=$VERSION \
             -Dpackaging=war \
             -DgeneratePom=true \
-            -DrepositoryId=nexus \
-            -Dusername=${{ secrets.NEXUS_USERNAME }} \
-            -Dpassword=${{ secrets.NEXUS_PASSWORD }}
+            -Dusername=$NEXUS_USERNAME \
+            -Dpassword=$NEXUS_PASSWORD
 
   deploy-to-tomcat:
     needs: publish-to-nexus
@@ -77,8 +81,12 @@ jobs:
           name: app-war
           path: target
 
-      - name: 🚀 Deploy to Tomcat Server
+      - name: 🌐 Deploy to Tomcat
+        env:
+          TOMCAT_URL: ${{ secrets.TOMCAT_URL }}
+          TOMCAT_USERNAME: ${{ secrets.TOMCAT_USERNAME }}
+          TOMCAT_PASSWORD: ${{ secrets.TOMCAT_PASSWORD }}
         run: |
-          curl -u ${{ secrets.TOMCAT_USERNAME }}:${{ secrets.TOMCAT_PASSWORD }} \
+          curl -u $TOMCAT_USERNAME:$TOMCAT_PASSWORD \
             -T target/*.war \
-            "${{ secrets.TOMCAT_URL }}/manager/text/deploy?path=/trainbook&update=true"
+            "$TOMCAT_URL/manager/text/deploy?path=/myapp&update=true"
