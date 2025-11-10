@@ -2,7 +2,7 @@ name: CI/CD - Build → Sonar → Nexus → Tomcat
 
 on:
   push:
-    branches: [dev, test, pre-prod, master] 
+    branches: [dev, test, pre-prod, master]
   workflow_dispatch:
 
 jobs:
@@ -11,19 +11,19 @@ jobs:
     steps:
       - name: ⬇️ Checkout code
         uses: actions/checkout@v4
-        
-      - name: ☕ Set up JDK 17 (Matching pom.xml)
+
+      - name: ☕ Set up JDK 17
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
           java-version: '17'
-          
-      - name: 🔨 Build with Maven (clean and verify)
+
+      - name: 🔨 Build with Maven
         run: mvn -B clean verify
-        
+
       - name: 🔍 SonarQube Scan
         run: mvn -B sonar:sonar -Dsonar.host.url=${{ secrets.SONAR_HOST_URL }} -Dsonar.login=${{ secrets.SONAR_TOKEN }}
-        
+
       - name: 📦 Upload WAR artifact
         uses: actions/upload-artifact@v4
         with:
@@ -34,41 +34,41 @@ jobs:
     needs: build-and-scan
     runs-on: ubuntu-latest
     steps:
-      - name: 🔑 Configure Maven Settings for Nexus Auth and Mirror
+      - name: 🔑 Configure Maven Settings for Nexus Auth
         env:
-          NEXUS_USERNAME: ${{ secrets.NEXUS_USER }}
+          NEXUS_USERNAME: ${{ secrets.NEXUS_USERNAME }}
           NEXUS_PASSWORD: ${{ secrets.NEXUS_PASSWORD }}
         run: |
           mkdir -p ~/.m2
           cat <<EOF > ~/.m2/settings.xml
-          <settings>
-            <servers>
-              <server>
-                <id>nexus</id>
-                <username>${NEXUS_USERNAME}</username>
-                <password>${NEXUS_PASSWORD}</password>
-              </server>
-            </servers>
-            <mirrors>
-              <mirror>
-                <id>central</id>
-                <name>Nexus Public Group Repository</name>
-                <url>http://34.229.82.240:8081/repository/maven-public/</url>
-                <mirrorOf>*</mirrorOf>
-              </mirror>
-            </mirrors>
-          </settings>
-          EOF
-          
+<settings>
+  <servers>
+    <server>
+      <id>nexus</id>
+      <username>${NEXUS_USERNAME}</username>
+      <password>${NEXUS_PASSWORD}</password>
+    </server>
+  </servers>
+  <mirrors>
+    <mirror>
+      <id>central</id>
+      <name>Nexus Mirror</name>
+      <url>http://34.229.82.240:8081/repository/maven-public/</url>
+      <mirrorOf>*</mirrorOf>
+    </mirror>
+  </mirrors>
+</settings>
+EOF
+
       - name: 📥 Download WAR artifact
         uses: actions/download-artifact@v4
         with:
           name: app-war
           path: target
-          
-      - name: ⏫ Publish to Nexus Repository
+
+      - name: ⏫ Deploy to Nexus Snapshot Repository
         run: |
-          VERSION=1.0.${{ github.run_number }}
+          VERSION=1.0.${{ github.run_number }}-SNAPSHOT
           mvn deploy:deploy-file \
             -Durl=${{ secrets.NEXUS_URL }} \
             -DrepositoryId=nexus \
@@ -88,9 +88,9 @@ jobs:
         with:
           name: app-war
           path: target
-          
+
       - name: 🔄 Deploy to Tomcat Manager
         run: |
-          curl -u ${{ secrets.TOMCAT_USER }}:${{ secrets.TOMCAT_PASSWORD }} \
+          curl -u ${{ secrets.TOMCAT_USERNAME }}:${{ secrets.TOMCAT_PASSWORD }} \
             -T target/TrainBook-1.0.0-SNAPSHOT.war \
-            "${{ secrets.TOMCAT_MANAGER_URL }}/manager/text/deploy?path=/TrainBook&update=true"
+            "${{ secrets.TOMCAT_URL }}/manager/text/deploy?path=/TrainBook&update=true"
