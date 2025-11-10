@@ -1,21 +1,21 @@
 run: |
   mkdir -p ~/.m2
   cat <<EOF > ~/.m2/settings.xml
-  <settings>
-    <servers>
-      <server>
-        <id>nexus</id>
-        <username>${NEXUS_USERNAME}</username>
-        <password>${NEXUS_PASSWORD}</password>
-      </server>
-    </servers>
-    <mirrors>
-      <mirror>
-        <id>central</id>
-        <name>Nexus Mirror</name>
-        <url>http://34.229.82.240:8081/repository/maven-public/</url>
-        <mirrorOf>*</mirrorOf>
-      </mirror>
-    </mirrors>
-  </settings>
-  EOF
+<settings>
+  <servers>
+    <server>
+      <id>nexus</id>
+      <username>${NEXUS_USERNAME}</username>
+      <password>${NEXUS_PASSWORD}</password>
+    </server>
+  </servers>
+  <mirrors>
+    <mirror>
+      <id>central</id>
+      <name>Nexus Mirror</name>
+      <url>http://34.229.82.240:8081/repository/maven-public/</url>
+      <mirrorOf>*</mirrorOf>
+    </mirror>
+  </mirrors>
+</settings>
+EOF
