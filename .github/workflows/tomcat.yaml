@@ -3,7 +3,7 @@ name: CI/CD - Build → Sonar → Nexus → Tomcat
 on:
   push:
     branches: [dev, test, pre-prod, main] 
-  workflow_dispatch: 
+  workflow_dispatch:
 
 jobs:
   build-and-scan:
@@ -16,11 +16,9 @@ jobs:
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
-          # CRITICAL FIX: Ensure Java version matches your pom.xml for compilation
-          java-version: '17' 
+          java-version: '17'
           
       - name: 🔨 Build with Maven (clean and verify)
-        # This will create target/TrainBook-1.0.0-SNAPSHOT.war
         run: mvn -B clean verify
         
       - name: 🔍 SonarQube Scan
@@ -30,28 +28,25 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: app-war
-          # Confirmed WAR file name: ArtifactId-Version.war
-          path: target/TrainBook-1.0.0-SNAPSHOT.war 
-          
+          path: target/TrainBook-1.0.0-SNAPSHOT.war
+
   publish-to-nexus:
-    needs: build-and-scan 
+    needs: build-and-scan
     runs-on: ubuntu-latest
     steps:
-      
       - name: 🔑 Configure Maven Settings for Nexus Auth and Mirror
         env:
-          # Map GitHub Secrets to the ENV variables expected by settings.xml
           NEXUS_USERNAME: ${{ secrets.NEXUS_USER }}
           NEXUS_PASSWORD: ${{ secrets.NEXUS_PASSWORD }}
         run: |
           mkdir -p ~/.m2
-          # Generate the settings.xml file with credentials and the mirror configuration
-          echo "<settings>
+          cat <<EOF > ~/.m2/settings.xml
+          <settings>
             <servers>
               <server>
                 <id>nexus</id>
-                <username>\${env.NEXUS_USERNAME}</username>
-                <password>\${env.NEXUS_PASSWORD}</password>
+                <username>${NEXUS_USERNAME}</username>
+                <password>${NEXUS_PASSWORD}</password>
               </server>
             </servers>
             <mirrors>
@@ -62,7 +57,8 @@ jobs:
                 <mirrorOf>*</mirrorOf>
               </mirror>
             </mirrors>
-          </settings>" > ~/.m2/settings.xml
+          </settings>
+          EOF
           
       - name: 📥 Download WAR artifact
         uses: actions/download-artifact@v4
@@ -76,15 +72,15 @@ jobs:
           mvn deploy:deploy-file \
             -Durl=${{ secrets.NEXUS_URL }} \
             -DrepositoryId=nexus \
-            -Dfile=target/TrainBook-1.0.0-SNAPSHOT.war \ # Correct artifact file path
-            -DgroupId=TrainBook \                         # Updated Group ID
-            -DartifactId=TrainBook \                       # Updated Artifact ID
+            -Dfile=target/TrainBook-1.0.0-SNAPSHOT.war \
+            -DgroupId=TrainBook \
+            -DartifactId=TrainBook \
             -Dversion=$VERSION \
             -Dpackaging=war \
             -DgeneratePom=true
 
   deploy-to-tomcat:
-    needs: publish-to-nexus 
+    needs: publish-to-nexus
     runs-on: ubuntu-latest
     steps:
       - name: 📥 Download WAR artifact
@@ -96,5 +92,5 @@ jobs:
       - name: 🔄 Deploy to Tomcat Manager
         run: |
           curl -u ${{ secrets.TOMCAT_USER }}:${{ secrets.TOMCAT_PASSWORD }} \
-            -T target/TrainBook-1.0.0-SNAPSHOT.war \ # Correct artifact file path
-            "${{ secrets.TOMCAT_MANAGER_URL }}/manager/text/deploy?path=/TrainBook&update=true" # Updated context path
+            -T target/TrainBook-1.0.0-SNAPSHOT.war \
+            "${{ secrets.TOMCAT_MANAGER_URL }}/manager/text/deploy?path=/TrainBook&update=true"
